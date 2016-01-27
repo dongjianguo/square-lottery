@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>九宫格抽奖</title>
+  <style>
+    body {
+      margin: 0 auto;
+      padding: 0;
+      width: 16rem;
+    }
+    .lottery-wrap {
+      margin-top: 1rem;
+      padding: 0.125rem 0;
+      width: 16rem;
+      font-size: 0;
+      text-align: center;
+      background: red;
+    }
+    .lottery-block, .lottery-anchor {
+      display: inline-block;
+      margin: 0.1rem;
+      width: 5rem;
+      height: 5rem;
+      font-size: 1rem;
+      line-height: 5rem;
+      vertical-align: middle; /*button和div的初始位置不一样*/
+      background: blue;
+      border: 1px solid transparent;
+    }
+    .lottery-block {
+      -moz-user-select: none;
+      -webkit-user-select:none;
+      -ms-user-select:none;
+      user-select:none;
+    }
+    .lottery-anchor {
+      display: inline-block;
+      -webkit-appearance: none;
+    }
+    .lottery-block.active {
+      background: yellow;
+    }
+  </style>
+  <script>
+    (function(b,a){var c={};c.px2rem=function(e,d){if(!d){d=parseInt(c.designWidth,10)}return parseInt(e,10)*320/d/20};c.rem2px=function(e,d){if(!d){d=parseInt(c.designWidth,10)}return e*20*d/320};c.mresize=function(){var d=b.innerWidth;if(c.maxWidth&&(d/c.dpr>c.maxWidth)){d=c.maxWidth*c.dpr}if(!d){return false}a.documentElement.style.fontSize=(d*20/320)+"px"};c.mresize();b.addEventListener("resize",function(){clearTimeout(c.tid);c.tid=setTimeout(c.mresize,33)},false);b.addEventListener("load",c.mresize,false);setTimeout(function(){c.mresize()},333);b.hotcss=c})(window,document);
+  </script>
+</head>
+<body>
+  <div class="lottery-wrap">
+    <div class="lottery-block" id="J_Block1">1</div>
+    <div class="lottery-block" id="J_Block2">2</div>
+    <div class="lottery-block" id="J_Block3">3</div>
+    <div class="lottery-block" id="J_Block8">8</div>
+    <button class="lottery-anchor" id="J_Anchor">start</button>
+    <div class="lottery-block" id="J_Block4">4</div>
+    <div class="lottery-block" id="J_Block7">7</div>
+    <div class="lottery-block" id="J_Block6">6</div>
+    <div class="lottery-block" id="J_Block5">5</div>
+  </div>
+
+  <script src="bower_components/zepto/zepto.min.js"></script>
+  <script>
+    !(function(){
+      //禁用滑动事件,手机影响动画
+      window.addEventListener('touchmove',function(e){
+        e.preventDefault();
+      },false);
+
+      var lottery = {
+        anchor: $('#J_Anchor'),//按钮元素
+        block: [
+          $('#J_Block1'),
+          $('#J_Block2'),
+          $('#J_Block3'),
+          $('#J_Block4'),
+          $('#J_Block5'),
+          $('#J_Block6'),
+          $('#J_Block7'),
+          $('#J_Block8')
+        ],//按顺序传入转动的奖品元素
+        times: 1,//转盘的圈数,最少为1圈
+        second: 500,//每次的延迟,毫秒值
+        begin: 0, //index值,比实际值少1
+        end: 0, //index值,比实际值少1
+        startTime: 0,//记录开始时间戳
+        endTime: 0,//记录结束时间戳
+        endElement: {},
+        init: function() {
+          for (var i = 0; i < lottery.block.length; i++) {
+            lottery.block[i].removeClass('active');
+          }
+          var index = lottery.begin;
+          lottery.block[index].addClass('active');
+        },//初始化转盘
+        round: function() {
+
+          var block = lottery.block;
+          var second = lottery.second;
+
+          function change (element,next) {
+            element.removeClass('active');
+            next.addClass('active');
+            lottery.endElement = next;
+          }
+
+          var count = lottery.begin;
+
+          var timeout = setInterval(function(){
+
+            var max = block.length - 1;
+
+            if (count == max) {
+              change(block[count],block[0]);
+            } else {
+              change(block[count],block[count+1]);
+            }
+
+            if(count <= max) {
+              count = count + 1;
+            }
+            if (count === max + 1) {
+              count = 0;
+            }
+          }, second);
+
+          var allTime = 0;
+
+          if(lottery.end - lottery.begin > 0) {
+            allTime = second * (lottery.times * block.length) + second * (lottery.end - lottery.begin);
+          } else {
+            allTime = second * (lottery.times * block.length) - second * (lottery.begin - lottery.end);
+          }
+
+          setTimeout(function(){
+            lottery.endTime = lottery.now();
+//            console.log('endTime:' + lottery.endTime);
+            var gap = lottery.endTime - lottery.startTime -allTime;//记录点击到执行函数时候的间隔
+//            console.log('gap:' + gap);
+            allTime = allTime - gap;//纠正时间误差
+            clearInterval(timeout);
+            lottery.anchor.removeAttr('disabled');
+            count = lottery.begin;
+//            console.log(lottery.endElement);
+            lottery.correct();// 调用矫正函数,若毫秒值低于500为保证准确性,请一定要调用该函数
+          }, allTime);
+
+        },//转盘转动逻辑函数
+        now: function() {
+          return new Date().getTime();
+        },//记录时间戳函数
+        correct: function() {
+          var index = lottery.block.indexOf(lottery.endElement);
+//          console.log(index);
+          if(lottery.end !== index) {
+            lottery.endElement.removeClass('active');
+            var eleIndex = lottery.end;
+            lottery.endElement = lottery.block[eleIndex];
+            lottery.endElement.addClass('active');
+//            console.log(lottery.endElement);
+          }
+        },//矫正函数,setTimeout,setInterval等有问题
+        random: function() {
+          return Math.floor(Math.random()*lottery.block.length);
+        },//随机函数
+        game: function() {
+
+          lottery.init();
+
+          var anchor = lottery.anchor;
+
+          anchor.on('click',function(e){
+            lottery.end = lottery.random();
+            console.log(lottery.end);
+            lottery.startTime = lottery.now();
+//            console.log('startTime:' + lottery.startTime);
+            e.preventDefault();
+            lottery.init();
+            anchor.attr('disabled','true');
+            lottery.round();
+          }, false);
+
+        }//转盘游戏流程函数
+      };
+
+      lottery.game();
+
+    })();
+
+
+  </script>
+</body>
+</html>
