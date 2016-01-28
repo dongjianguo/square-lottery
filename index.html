@@ -86,6 +86,7 @@
         end: 0, //index值,比实际值少1
         startTime: 0,//记录开始时间戳
         endTime: 0,//记录结束时间戳
+        timeout: undefined,
         counter: 0,//计数器,用于累计
         endElement: {},//记录结束时候的元素
         init: function() {
@@ -108,7 +109,7 @@
 
           var count = lottery.begin;
 
-          var timeout = setInterval(function(){
+          lottery.timeout = setInterval(function(){
 
             var max = block.length - 1;
 
@@ -131,7 +132,7 @@
             if(lottery.counter === allTime) {
               lottery.endTime = lottery.now();
 //              console.log('endTime:' + lottery.endTime);
-              clearInterval(timeout);
+              clearInterval(lottery.timeout);
               lottery.anchor.removeAttr('disabled');
               count = lottery.begin;
 //            console.log(lottery.endElement);
