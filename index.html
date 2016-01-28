@@ -80,13 +80,14 @@
           $('#J_Block7'),
           $('#J_Block8')
         ],//按顺序传入转动的奖品元素
-        times: 1,//转盘的圈数,最少为1圈
-        second: 500,//每次的延迟,毫秒值
+        times: 2,//转盘的圈数,最少为1圈
+        second: 300,//每次的延迟,毫秒值
         begin: 0, //index值,比实际值少1
         end: 0, //index值,比实际值少1
         startTime: 0,//记录开始时间戳
         endTime: 0,//记录结束时间戳
-        endElement: {},
+        counter: 0,//计数器,用于累计
+        endElement: {},//记录结束时候的元素
         init: function() {
           for (var i = 0; i < lottery.block.length; i++) {
             lottery.block[i].removeClass('active');
@@ -123,28 +124,26 @@
             if (count === max + 1) {
               count = 0;
             }
+
+            var allTime = (lottery.times * block.length) + (lottery.end - lottery.begin);
+
+
+            if(lottery.counter === allTime) {
+              lottery.endTime = lottery.now();
+//              console.log('endTime:' + lottery.endTime);
+              clearInterval(timeout);
+              lottery.anchor.removeAttr('disabled');
+              count = lottery.begin;
+//            console.log(lottery.endElement);
+              lottery.correct();// 调用矫正函数,若毫秒值低于500为保证准确性,请一定要调用该函数
+            } else {
+//              console.log('lottery.counter:' + lottery.counter);
+//              console.log('allTime: ' + allTime);
+              lottery.counter = lottery.counter + 1;
+            }
+
           }, second);
 
-          var allTime = 0;
-
-          if(lottery.end - lottery.begin > 0) {
-            allTime = second * (lottery.times * block.length) + second * (lottery.end - lottery.begin);
-          } else {
-            allTime = second * (lottery.times * block.length) - second * (lottery.begin - lottery.end);
-          }
-
-          setTimeout(function(){
-            lottery.endTime = lottery.now();
-//            console.log('endTime:' + lottery.endTime);
-            var gap = lottery.endTime - lottery.startTime -allTime;//记录点击到执行函数时候的间隔
-//            console.log('gap:' + gap);
-            allTime = allTime - gap;//纠正时间误差
-            clearInterval(timeout);
-            lottery.anchor.removeAttr('disabled');
-            count = lottery.begin;
-//            console.log(lottery.endElement);
-            lottery.correct();// 调用矫正函数,若毫秒值低于500为保证准确性,请一定要调用该函数
-          }, allTime);
 
         },//转盘转动逻辑函数
         now: function() {
@@ -171,10 +170,10 @@
           var anchor = lottery.anchor;
 
           anchor.on('click',function(e){
+            lottery.counter = 0;
             lottery.end = lottery.random();
-            console.log(lottery.end);
+//            console.log('endIndex:' + lottery.end);
             lottery.startTime = lottery.now();
-//            console.log('startTime:' + lottery.startTime);
             e.preventDefault();
             lottery.init();
             anchor.attr('disabled','true');
